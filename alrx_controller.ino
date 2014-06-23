@@ -27,14 +27,14 @@ time_t t = now();
 int timeSeconds = second(t);
 
 void setup() {
-  serial.begin (9600);
+  serial.begin (9600); //printing to device
+  Serial.begin (9600); //printing to serial monitor
   setupMuxShield();
   initializeSDCard ();
   setupStepper ();
 }
 
 void loop() {
-  if (
   if (stringComplete){
     parseMessage();
     stringComplete = false;
@@ -43,7 +43,7 @@ void loop() {
   
   if (run == true)
   {
-    serial.println ("System started");
+    Serial.println ("System started");
     reactionChamber ();
     hydrogenSystem ();
     oxygenSystem ();
@@ -54,7 +54,7 @@ void loop() {
      }
   } 
   else if (run == false)
-    serial.println ("System stopped");
+    Serial.println ("System stopped");
  
 }
 void serialEvent ()
@@ -81,15 +81,15 @@ void setupMuxShield ()
 void initializeSDCard ()
 //initializes SD card
 {
-  serial.print ("Initializing SD card...");
+  Serial.print ("Initializing SD card...");
   pinMode (10, OUTPUT);
   if (!card.init(SPI_HALF_SPEED, chipSelect))
     {
-      serial.println ("Initialization failed.");
+      Serial.println ("Initialization failed.");
     }  
   else
     {
-      serial.println ("Initialization complete.");
+      Serial.println ("Initialization complete.");
     }
 }
 
@@ -117,23 +117,31 @@ void parseMessage ()
   }
   if (inParse [0] != "ALRX") 
   {
-    serial.print ("Received unknown command: ");
+    Serial.print ("Received unknown command: ");
       for (int i=0;i<inParse.length();i++)
       {
-        serial.print(inParse[i]);
+        Serial.print(inParse[i]);
       }
-      serial.println();
+      Serial.println();
   break;
   }
-  if (inParse [1]== "START")
-    run == true;
-  else if (inParse [1]=="STOP")
-    run == false;
+switch (inParse[1])
+{
+case "START" :
+run ==true;
+break;
+case "STOP" :
+run==false;
+break;
+case "STATUS":
+ 
+}
+
 //add full list of commands 
 }
 
 void sendStatus ()
-//sends status report to Serial output (ALRX_STATUS 1111 for overall status OK, reaction is ON, H2 side is OK, O2 side is OK)
+//sends status report to serial output (ALRX_STATUS 1111 for overall status OK, reaction is ON, H2 side is OK, O2 side is OK)
 {
   String statusRep= "ALRX_STATUS";
   int overallStat = 0;
@@ -141,7 +149,17 @@ void sendStatus ()
   int H2Stat = 0;
   int O2Stat = 0;
 
-//add boolean methods for checking
+if (checkOverallStat)
+overallStat=1;
+
+if (checkReactionStat)
+reactionStat=1;
+
+if (checkH2Stat)
+H2Stat=1;
+
+if (checkO2Stat)
+O2Stat=1;
 
  statusRep = statusRep.concat(overallStat); 
  statusRep = statusRep.concat(reactionStat);
