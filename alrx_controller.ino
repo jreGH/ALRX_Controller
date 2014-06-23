@@ -110,30 +110,37 @@ void parseMessage ()
   int count = 0;
   char inParse []= "";
   
-  while ((str=strok_r(p, "_", &p)) != NULL)
+  while ((str=strtok_r(p, "_", &p)) != NULL)
   {
-    inParse [count] = str;
+    inParse [count] = *str;
     count++;
   }
-  if (inParse [0] != "ALRX") 
+ while ((str=strtok_r(p, " ", &p)) != NULL)
+  {
+    inParse [count] = *str;
+    count++;
+  }
+  if (inParse [0] != 'ALRX') 
   {
     Serial.print ("Received unknown command: ");
-      for (int i=0;i<inParse.length();i++)
+      for (int i=0;i<sizeof(inParse);i++)
       {
         Serial.print(inParse[i]);
       }
       Serial.println();
-  break;
   }
 switch (inParse[1])
 {
-case "START" :
-run ==true;
-break;
-case "STOP" :
-run==false;
-break;
-case "STATUS":
+case 'START' :
+       run ==true;
+       break;
+case 'STOP' :
+       run==false;
+       break;
+case 'STATUS':
+       switch (inParse[count])
+       {
+        }
  
 }
 
@@ -143,7 +150,7 @@ case "STATUS":
 void sendStatus ()
 //sends status report to serial output (ALRX_STATUS 1111 for overall status OK, reaction is ON, H2 side is OK, O2 side is OK)
 {
-  String statusRep= "ALRX_STATUS";
+  String statusRep= "ALRX_STATUS ";
   int overallStat = 0;
   int reactionStat = 0;
   int H2Stat = 0;
