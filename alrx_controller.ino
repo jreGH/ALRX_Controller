@@ -155,17 +155,18 @@ void sendStatus ()
   int reactionStat = 0;
   int H2Stat = 0;
   int O2Stat = 0;
+  
 
-if (checkOverallStat)
+if (checkOverallStat())
 overallStat=1;
 
-if (checkReactionStat)
+if (checkReactionStat())
 reactionStat=1;
 
-if (checkH2Stat)
+if (checkH2Stat())
 H2Stat=1;
 
-if (checkO2Stat)
+if (checkO2Stat())
 O2Stat=1;
 
  statusRep = statusRep.concat(overallStat); 
@@ -176,6 +177,25 @@ O2Stat=1;
  serial.println (statusRep);
 }
 
+boolean checkOverallStat ()
+//checks overall status of system
+{
+}
+
+boolean checkReactionStat ()
+//checks status of reaction chamber
+{
+}
+
+boolean checkH2Stat ()
+//checks status of hydrogen system
+{
+}
+
+boolean checkO2Stat ()
+//checks status of oxygen system
+{
+}
 
 void reactionChamber ()
 {
