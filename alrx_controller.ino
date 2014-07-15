@@ -7,7 +7,7 @@
 #include <Heater.h>
 #include <ctype.h>
 #include <MuxShield.h>
-#include <Adafruit_MAX31855>
+#include <Adafruit_MAX31855.h>
 
 boolean run = false;
 boolean log = true;
