@@ -7,7 +7,7 @@
 #include <Heater.h>
 #include <ctype.h>
 #include <MuxShield.h>
-
+#include <Adafruit_MAX31855>
 
 boolean run = false;
 boolean log = true;
@@ -19,6 +19,11 @@ SoftwareSerial serial = SoftwareSerial(0,1); //put in correct RX and TX pins
 MuxShield muxShield;
 Sd2Card card;
 const int chipSelect = 10;
+int thermoDO1 = 3;
+int thermoCS = 4;
+int thermoCLK = 5;
+
+Adafruit_MAX31855 thermocouple1 (thermoCLK, thermoCS, thermoDO1);
 Sensor h2sensor = Sensor (pin, "hydrogen"); //put in correct pin # for hydrogen sensor
 Sensor o2sensor = Sensor (pin, "oxygen"); //put in correct pin # for oxygen sensor
 Stepper motor (steps, in1Pin, in2Pin, in3Pin, in4Pin); //put in correct # of steps and pin #'s for stepper motor
@@ -220,6 +225,11 @@ void oxygenSystem ()
 {
   o2sensor.log();
   o2sensor.print();
+  
+  double c = thermocouple1.readCelsius();
+  if (isnan(c)) {
+  Serial.println ("Something wrong with thermocouple 1");
+  }
   
   if (temperature < heaterMin) //put in correct heaterMin when value is known
     heater.turnOn();
