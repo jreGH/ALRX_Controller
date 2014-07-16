@@ -52,7 +52,8 @@ void loop() {
     reactionChamber ();
     hydrogenSystem ();
     oxygenSystem ();
-    if (second (t) == (timeSeconds +1))
+    t=now();
+    if (second (t) >= (timeSeconds +1))
      {   
       timeSeconds = second (t);
       sendStatus (); //send status report every 1 second
@@ -88,10 +89,10 @@ void initializeSDCard ()
 {
   Serial.print ("Initializing SD card...");
   pinMode (10, OUTPUT);
-  if (!card.init(SPI_HALF_SPEED, chipSelect))
-    {
-      Serial.println ("Initialization failed.");
-    }  
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    return;
+  }
   else
     {
       Serial.println ("Initialization complete.");
