@@ -1,13 +1,19 @@
 #include <Time.h>
 #include <SoftwareSerial.h>
-#include <Stepper.h>
 #include <String.h>
 #include <SD.h>
-#include <Sensor.h>
-#include <Heater.h>
 #include <ctype.h>
 #include <MuxShield.h>
-#include <Adafruit_MAX31855.h>
+#include <OneWire.h> //for thermocouple
+#include <DallasTemperature.h> //for thermocouple
+#include <PID_v1.h> //for heater control
+
+#define mdir 4 // motor direction
+#define msp 5 // motor speed 62.5
+#define RelayPin 6 //connected to MOSFET G
+// Data wire is plugged into port 2 on the Arduino
+#define ONE_WIRE_BUS 2
+#define TEMPERATURE_PRECISION 9
 
 boolean run = false;
 boolean log = true;
@@ -18,25 +24,31 @@ char message [] = "";
 SoftwareSerial serial = SoftwareSerial(0,1); //put in correct RX and TX pins
 MuxShield muxShield;
 Sd2Card card;
-const int chipSelect = 10;
-int thermoDO1 = 3;
-int thermoCS = 4;
-int thermoCLK = 5;
+const int chipSelect = 10; //CS pin (SD Breakout Board)
 
-Adafruit_MAX31855 thermocouple1 (thermoCLK, thermoCS, thermoDO1);
-Sensor h2sensor = Sensor (pin, "hydrogen"); //put in correct pin # for hydrogen sensor
-Sensor o2sensor = Sensor (pin, "oxygen"); //put in correct pin # for oxygen sensor
-Stepper motor (steps, in1Pin, in2Pin, in3Pin, in4Pin); //put in correct # of steps and pin #'s for stepper motor
-Heater heater = Heater (pin); //put in correct pin # for (oxygen system) heater
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature thermocouples(&oneWire);
+DeviceAddress thermo1, thermo2, thermo3, thermo4;
+double tempC; //thermocouple reading
+
+double Setpoint, Input, Output;
+PID myPID(&Input, &Output, &Setpoint,5,10,1, DIRECT);
+Setpoint = 370.0; //PID heater Setpoint-- temp Celsius
+ 
 time_t t = now();
 int timeSeconds = second(t);
 
 void setup() {
-  serial.begin (9600); //printing to device
-  Serial.begin (9600); //printing to serial monitor
+  serial.begin(9600); //printing to device
+  Serial.begin(9600); //printing to serial monitor
   setupMuxShield();
-  initializeSDCard ();
-  setupStepper ();
+  initializeSDCard();
+  setupThermocouples();
+  setupStepper(); //turns stepper on
+  setupPID();
 }
 
 void loop() {
@@ -98,14 +110,44 @@ void initializeSDCard ()
       Serial.println ("Initialization complete.");
     }
 }
+void setupThermocouples()
+{
+ thermocouples.begin();
 
+  // locate devices on the bus
+  Serial.print("Locating devices...");
+  Serial.print("Found ");
+  Serial.print(sensors.getDeviceCount(), DEC);
+  Serial.println(" devices.");
+
+  if (!sensors.getAddress(thermo1, 1)) Serial.println("Unable to find address for Device 1");
+  if (!sensors.getAddress(thermo2, 2)) Serial.println("Unable to find address for Device 2");
+  if (!sensors.getAddress(thermo3, 3)) Serial.println("Unable to find address for Device 3");
+  if (!sensors.getAddress(thermo4, 4)) Serial.println("Unable to find address for Device 4");
+  
+  // set the resolution to 9 bit
+  sensors.setResolution(thermo1, TEMPERATURE_PRECISION);
+  sensors.setResolution(thermo2, TEMPERATURE_PRECISION);
+  sensors.setResolution(thermo3, TEMPERATURE_PRECISION);
+  sensors.setResolution(thermo4, TEMPERATURE_PRECISION);
+  
+  //call thermocouples.requestTemperatures() to issue a global temperature 
+  thermocouples.requestTemperatures();
+
+}
 void setupStepper ()
 {
-  pinMode (in1Pin, OUTPUT);
-  pinMode (in2Pin, OUTPUT);
-  pinMode (in3Pin, OUTPUT);
-  pinMode (in4Pin, OUTPUT);
-  motor.setSpeed (speed); //put in correct initial speed for motor
+  pinMode(mdir,OUTPUT);
+  digitalWrite(mdir,LOW); // correct direction is LOW
+  analogWrite(msp,75); //turn stepper motor on
+}
+
+void setupPID()
+{
+  tempC = thermocouples.getTempC (thermo1);
+  Input = tempC;
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
 }
 
 void parseMessage ()
@@ -209,38 +251,21 @@ void reactionChamber ()
    //thermocouple 
 }
 void hydrogenSystem ()
+//AST pressure sensor, Sensirion mass flow meter, KNF liquid pump
 {
-  h2sensor.log();
-  h2sensor.print();
-  if (h2sensor.hitMax(maxValue)) //put in correct max value for hydrogen sensor
-  {
-    //slow pump
-  }
-  
-  //pressure switch
-  //pressure sensor
+
+}
 
 void oxygenSystem ()
-//heater-- should be turned on/off determined by temperature 
-  //stepper motor-- two speeds-- switch speeds when oxygen level drops below certain value
+  //rope heater, LuminOx oxygen sensor, stepper motor/driver
 {
-  o2sensor.log();
-  o2sensor.print();
+  tempC = thermocouples.getTempC (thermo1);
+  Input = tempC;
+  Serial.print ("Heater temp (C): ");
+  Serial.println (Input);
+  myPID.Compute();
+  Serial.print ("PID Output: ");
+  Serial.println (Output);
+  analogWrite(6,Output);
   
-  double c = thermocouple1.readCelsius();
-  if (isnan(c)) {
-  Serial.println ("Something wrong with thermocouple 1");
-  }
-  
-  if (temperature < heaterMin) //put in correct heaterMin when value is known
-    heater.turnOn();
-  else if (temperature > heaterMax) //put in correct heaterMax when value is known
-    heater.turnOff(); 
-  
-  if (o2sensor.read()< value) //put in correct value for variable 'value'
-    motor.setSpeed (speed1);
-  else if (o2sensor.read()>value) //put in correct value for variable 'value'
-    motor.setSpeed (speed2);
-  
-    
 }
