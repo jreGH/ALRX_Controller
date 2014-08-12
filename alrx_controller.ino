@@ -11,9 +11,16 @@
 #define mdir 4 // motor direction
 #define msp 5 // motor speed 62.5
 #define RelayPin 6 //connected to MOSFET G
+
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 2
 #define TEMPERATURE_PRECISION 9
+
+#define impulse 6 //impulse generator 6 pulse/mech.rotation (for pump)
+#define H2PressurePin A5 //(for AST pressure sensor)
+#define P_HI 36 //H2 max pressure (psi)
+#define P_LO 8 //H2 min pressure (psi)
+double H2Pressure; //AST pressure reading
 
 boolean run = false;
 boolean log = true;
@@ -35,7 +42,7 @@ DeviceAddress thermo1, thermo2, thermo3, thermo4;
 double tempC; //thermocouple reading
 
 double Setpoint, Input, Output;
-PID myPID(&Input, &Output, &Setpoint,5,10,1, DIRECT);
+PID myPID(&Input, &Output, &Setpoint,10,10,1, DIRECT);
 Setpoint = 370.0; //PID heater Setpoint-- temp Celsius
  
 time_t t = now();
@@ -49,6 +56,9 @@ void setup() {
   setupThermocouples();
   setupStepper(); //turns stepper on
   setupPID();
+  pinMode (vctrl, INPUT);
+ 	pinMode (impulse, OUTPUT);
+
 }
 
 void loop() {
@@ -253,6 +263,30 @@ void reactionChamber ()
 void hydrogenSystem ()
 //AST pressure sensor, Sensirion mass flow meter, KNF liquid pump
 {
+double RPM = (digitalRead (impulse)) / 6;
+	Serial.print ("Water Pump RPM: ");
+	Serial.println (RPM);
+
+	double v = (analogRead (H2PressurePin) / 1023.0) * 5;
+	if (v == 1)
+		H2Pressure = 0;
+	else
+		H2Pressure = (v * 74.402) - 74.2;
+
+	Serial.print ("H2 Pressure: ");
+	Serial.println (H2Pressure);
+	delay (1000);
+
+	if (H2Pressure >= P_HI)
+	{
+//turn off pump
+		digitalWrite (vctrl, LOW);
+	}
+	else if (H2Pressure <= P_LO)
+	{
+//turn on pump
+		digitalWrite (vctrl, HIGH);
+	}
 
 }
 
