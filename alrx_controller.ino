@@ -9,6 +9,8 @@
 #include <OneWire.h> //for thermocouple (needed for DallasTemperature)
 #include <DallasTemperature.h> //for thermocouple
 #include <PID_v1.h> //for heater control
+#include "RTClib.h"
+#include <Wire.h>
 
 #define mdir 4 // motor direction
 #define msp 5 // motor speed 62.5
@@ -55,6 +57,7 @@ double Setpoint = 370.0; //PID heater Setpoint-- temp Celsius
 
 PID myPID(&Input, &Output, &Setpoint,10,10,1, DIRECT);
 
+RTC_DS1307 rtc;
  
 time_t t = now();
 int timeSeconds = second(t);
@@ -64,6 +67,7 @@ void setup() {
   Serial.begin(9600); //printing to serial monitor
   setupMuxShield();
   initializeSDCard();
+  setupClock();
   setupThermocouples();
   setupStepper(); //turns stepper on
   setupPID();
@@ -131,6 +135,38 @@ void initializeSDCard ()
       Serial.println ("Initialization complete.");
     }
 }
+void setupClock()
+{
+Wire.begin();
+if (! rtc.isrunning()) {
+    Serial.println("RTC is NOT running!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  }
+
+}
+
+void logTime()
+{
+ DateTime now = rtc.now();
+    
+    Serial.print(now.year(), DEC);
+    Serial.print('/');
+    Serial.print(now.month(), DEC);
+    Serial.print('/');
+    Serial.print(now.day(), DEC);
+    Serial.print(' ');
+    Serial.print(now.hour(), DEC);
+    Serial.print(':');
+    Serial.print(now.minute(), DEC);
+    Serial.print(':');
+    Serial.print(now.second(), DEC);
+    Serial.println();
+}
+
 void setupThermocouples()
 {
  thermocouples.begin();
