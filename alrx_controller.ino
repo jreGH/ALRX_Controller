@@ -18,7 +18,7 @@
 #define ONE_WIRE_BUS 2
 #define TEMPERATURE_PRECISION 9
 
-#define _H2O_PUMP_VCTRL_ 6 //ZB:  what is the correct pin?
+#define _H2O_PUMP_VCTRL_ 5 
 #define _H2O_PUMP_IMPULSE_ 6 //impulse generator 6 pulse/mech.rotation (for pump)
 
 #define MAX_STRLEN 130
