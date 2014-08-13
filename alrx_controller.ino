@@ -4,7 +4,7 @@
 #include <SD.h>
 #include <ctype.h>
 #include <MuxShield.h>
-#include <OneWire.h> //for thermocouple
+#include <OneWire.h> //for thermocouple (needed for DallasTemperature)
 #include <DallasTemperature.h> //for thermocouple
 #include <PID_v1.h> //for heater control
 
