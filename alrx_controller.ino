@@ -1,7 +1,9 @@
+
 #include <Time.h>
 #include <SoftwareSerial.h>
 #include <String.h>
 #include <SD.h>
+#include <SPI.h>
 #include <ctype.h>
 #include <MuxShield.h>
 #include <OneWire.h> //for thermocouple (needed for DallasTemperature)
@@ -16,18 +18,24 @@
 #define ONE_WIRE_BUS 2
 #define TEMPERATURE_PRECISION 9
 
-#define impulse 6 //impulse generator 6 pulse/mech.rotation (for pump)
+#define _H2O_PUMP_VCTRL_ 6 //ZB:  what is the correct pin?
+#define _H2O_PUMP_IMPULSE_ 6 //impulse generator 6 pulse/mech.rotation (for pump)
+
+#define MAX_STRLEN 130
+
+
 #define H2PressurePin A5 //(for AST pressure sensor)
 #define P_HI 36 //H2 max pressure (psi)
 #define P_LO 8 //H2 min pressure (psi)
 double H2Pressure; //AST pressure reading
 
 boolean run = false;
-boolean log = true;
+boolean logData = true;
 boolean print = false;
 boolean stringComplete = false;
 int index = 0;
-char message [] = "";
+char message[MAX_STRLEN]; //ZB:  try to reuse this buffer for all string variables
+
 SoftwareSerial serial = SoftwareSerial(0,1); //put in correct RX and TX pins
 MuxShield muxShield;
 Sd2Card card;
@@ -41,9 +49,12 @@ DallasTemperature thermocouples(&oneWire);
 DeviceAddress thermo1, thermo2, thermo3, thermo4;
 double tempC; //thermocouple reading
 
-double Setpoint, Input, Output;
+double Input, Output;
+
+double Setpoint = 370.0; //PID heater Setpoint-- temp Celsius
+
 PID myPID(&Input, &Output, &Setpoint,10,10,1, DIRECT);
-Setpoint = 370.0; //PID heater Setpoint-- temp Celsius
+
  
 time_t t = now();
 int timeSeconds = second(t);
@@ -56,8 +67,8 @@ void setup() {
   setupThermocouples();
   setupStepper(); //turns stepper on
   setupPID();
-  pinMode (vctrl, INPUT);
- 	pinMode (impulse, OUTPUT);
+  pinMode (_H2O_PUMP_VCTRL_, INPUT);
+  pinMode (_H2O_PUMP_IMPULSE_, OUTPUT);
 
 }
 
@@ -65,7 +76,7 @@ void loop() {
   if (stringComplete){
     parseMessage();
     stringComplete = false;
-    message = "";
+    sprintf(message, "");
   }
   
   if (run == true)
@@ -127,19 +138,19 @@ void setupThermocouples()
   // locate devices on the bus
   Serial.print("Locating devices...");
   Serial.print("Found ");
-  Serial.print(sensors.getDeviceCount(), DEC);
+  Serial.print(thermocouples.getDeviceCount(), DEC);
   Serial.println(" devices.");
 
-  if (!sensors.getAddress(thermo1, 1)) Serial.println("Unable to find address for Device 1");
-  if (!sensors.getAddress(thermo2, 2)) Serial.println("Unable to find address for Device 2");
-  if (!sensors.getAddress(thermo3, 3)) Serial.println("Unable to find address for Device 3");
-  if (!sensors.getAddress(thermo4, 4)) Serial.println("Unable to find address for Device 4");
+  if (!thermocouples.getAddress(thermo1, 1)) Serial.println("Unable to find address for Device 1");
+  if (!thermocouples.getAddress(thermo2, 2)) Serial.println("Unable to find address for Device 2");
+  if (!thermocouples.getAddress(thermo3, 3)) Serial.println("Unable to find address for Device 3");
+  if (!thermocouples.getAddress(thermo4, 4)) Serial.println("Unable to find address for Device 4");
   
   // set the resolution to 9 bit
-  sensors.setResolution(thermo1, TEMPERATURE_PRECISION);
-  sensors.setResolution(thermo2, TEMPERATURE_PRECISION);
-  sensors.setResolution(thermo3, TEMPERATURE_PRECISION);
-  sensors.setResolution(thermo4, TEMPERATURE_PRECISION);
+  thermocouples.setResolution(thermo1, TEMPERATURE_PRECISION);
+  thermocouples.setResolution(thermo2, TEMPERATURE_PRECISION);
+  thermocouples.setResolution(thermo3, TEMPERATURE_PRECISION);
+  thermocouples.setResolution(thermo4, TEMPERATURE_PRECISION);
   
   //call thermocouples.requestTemperatures() to issue a global temperature 
   thermocouples.requestTemperatures();
@@ -208,31 +219,44 @@ case 'STATUS':
 void sendStatus ()
 //sends status report to serial output (ALRX_STATUS 1111 for overall status OK, reaction is ON, H2 side is OK, O2 side is OK)
 {
-  String statusRep= "ALRX_STATUS ";
+  //Use the message buffer
+  sprintf(message, "ALRX_STATUS ");
+
   int overallStat = 0;
   int reactionStat = 0;
   int H2Stat = 0;
   int O2Stat = 0;
   
+  if (checkOverallStat()) {
+    sprintf(message, "%s 1", message); 
+  }
+  else {
+    sprintf(message, "%s 0", message);
+  }
 
-if (checkOverallStat())
-overallStat=1;
-
-if (checkReactionStat())
-reactionStat=1;
-
-if (checkH2Stat())
-H2Stat=1;
-
-if (checkO2Stat())
-O2Stat=1;
-
- statusRep = statusRep.concat(overallStat); 
- statusRep = statusRep.concat(reactionStat);
- statusRep = statusRep.concat(H2Stat);
- statusRep = statusRep.concat(O2Stat);
+  if (checkReactionStat()) {
+    sprintf(message, "%s1", message); 
+  }
+  else {
+    sprintf(message, "%s0", message);
+  }
+  
+  if (checkH2Stat()) {
+    sprintf(message, "%s1", message); 
+  }
+  else {
+    sprintf(message, "%s0", message);
+  }
+  
+  if (checkO2Stat()) {
+    sprintf(message, "%s1", message); 
+  }
+  else {
+    sprintf(message, "%s0", message);
+  }
+  
  
- serial.println (statusRep);
+ Serial.println (message);
 }
 
 boolean checkOverallStat ()
@@ -263,7 +287,7 @@ void reactionChamber ()
 void hydrogenSystem ()
 //AST pressure sensor, Sensirion mass flow meter, KNF liquid pump
 {
-double RPM = (digitalRead (impulse)) / 6;
+double RPM = (digitalRead (_H2O_PUMP_IMPULSE_)) / 6;
 	Serial.print ("Water Pump RPM: ");
 	Serial.println (RPM);
 
@@ -280,12 +304,12 @@ double RPM = (digitalRead (impulse)) / 6;
 	if (H2Pressure >= P_HI)
 	{
 //turn off pump
-		digitalWrite (vctrl, LOW);
+		digitalWrite (_H2O_PUMP_VCTRL_, LOW);
 	}
 	else if (H2Pressure <= P_LO)
 	{
 //turn on pump
-		digitalWrite (vctrl, HIGH);
+		digitalWrite (_H2O_PUMP_VCTRL_, HIGH);
 	}
 
 }

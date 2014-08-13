@@ -10,7 +10,7 @@ Heater.h - Library for using heaters.
 class Heater
 {
   public:
-    Heater (int pin)
+    Heater (int pin);
     void turnOn();
     void turnOff();
     

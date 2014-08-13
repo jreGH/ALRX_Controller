@@ -15,7 +15,7 @@ Sensor::Sensor (int pin, String type)
 int Sensor::read()
 //code to read sensor
 {
-  reading = analogRead (pin);
+  reading = analogRead (_pin);
   return reading;
 }
 

@@ -6,6 +6,7 @@ Sensor.h - Library for using sensors.
 #define Sensor_h
 
 #include "Arduino.h"
+#include <SD.h>
 
 class Sensor
 {
@@ -22,7 +23,7 @@ class Sensor
     
    private:
      int _pin;
-     String _type
+     String _type;
 };
 
 #endif
