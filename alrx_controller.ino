@@ -14,21 +14,21 @@
 //The function dayOfWeek() needs to be renamed (I used dayOfWeek_rtc())
 #include <RTClib.h> 
 
-#define mdir 4 // motor direction
+#define mdir 4 //NEED TO SET PIN! On MUX// motor direction
 #define msp 5 // motor speed 62.5
-#define RelayPin 6 //connected to MOSFET G
+#define RelayPin 10 //connected to MOSFET G
 
 // Data wire is plugged into port 2 on the Arduino
-#define ONE_WIRE_BUS 2
+#define ONE_WIRE_BUS 4
 #define TEMPERATURE_PRECISION 9
 
-#define _H2O_PUMP_VCTRL_ 5 
-#define _H2O_PUMP_IMPULSE_ 6 //impulse generator 6 pulse/mech.rotation (for pump)
+#define _H2O_PUMP_VCTRL_ 9 
+#define _H2O_PUMP_IMPULSE_ 6 //NEED TO SET PIN! On MUX //impulse generator 6 pulse/mech.rotation (for pump)
 
 #define MAX_STRLEN 130
 
 
-#define H2PressurePin A5 //(for AST pressure sensor)
+#define H2PressurePin A0 //(for AST pressure sensor)
 #define P_HI 36 //H2 max pressure (psi)
 #define P_LO 8 //H2 min pressure (psi)
 double H2Pressure; //AST pressure reading
@@ -43,7 +43,7 @@ char message[MAX_STRLEN]; //ZB:  try to reuse this buffer for all string variabl
 SoftwareSerial serial = SoftwareSerial(0,1); //put in correct RX and TX pins
 MuxShield muxShield;
 Sd2Card card;
-const int chipSelect = 10; //CS pin (SD Breakout Board)
+const int chipSelect = 8; //CS pin (SD Breakout Board)
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
