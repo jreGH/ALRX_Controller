@@ -9,8 +9,10 @@
 #include <OneWire.h> //for thermocouple (needed for DallasTemperature)
 #include <DallasTemperature.h> //for thermocouple
 #include <PID_v1.h> //for heater control
-#include "RTClib.h"
 #include <Wire.h>
+//NOTE:  Need to edit this library due to conflict with Time.h
+//The function dayOfWeek() needs to be renamed (I used dayOfWeek_rtc())
+#include <RTClib.h> 
 
 #define mdir 4 // motor direction
 #define msp 5 // motor speed 62.5
